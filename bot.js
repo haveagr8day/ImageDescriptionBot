@@ -138,3 +138,10 @@ function attachmentIsImage(msgAttach) {
 
 // Login to Discord and activate bot
 bot.login(process.env.DISCORD_BOT_TOKEN);
+
+process.on('SIGINT', function() {
+	console.log ('Shutting down')
+
+	bot.destroy()
+	process.exit()
+});
