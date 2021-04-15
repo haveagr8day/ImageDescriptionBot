@@ -46,7 +46,6 @@ function numtob64(bn) {
 console.log('Starting bot')
 
 const Discord = require('discord.js');
-const auth = require('./auth.json');
 
 const bot = new Discord.Client();
 
@@ -138,4 +137,4 @@ function attachmentIsImage(msgAttach) {
 }
 
 // Login to Discord and activate bot
-bot.login(auth.token);
+bot.login(process.env.DISCORD_BOT_TOKEN);
