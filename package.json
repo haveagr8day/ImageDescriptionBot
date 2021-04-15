@@ -1,0 +1,10 @@
+{
+  "name": "image-description-bot",
+  "version": "1.0.0",
+  "description": "Manages adding image descriptions to pictures posted in a server",
+  "main": "bot.js",
+  "author": "Riley Baxter",
+  "dependencies": {
+    "discord.js": "^12.5.3"
+  }
+}
