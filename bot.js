@@ -74,63 +74,75 @@ bot.on('message', function (message) {
     
     console.log(`Got message ${message.id}`);
     // Check for single attachment
-    if (message.attachments.size == 1) {
-        console.log('Message has an attachment');
-        if (attachmentIsImage(message.attachments.first())) {
-            console.log('Attachment is an image');
-            img = message.attachments.first();
-            console.log('Downloading image');
-            const filename = img.url.split('/').pop();
-            fsPromises.unlink(filename)
-            .catch( function (error) {})
-            .finally( function() {
-                console.log(img.url);
-                var file = fs.createWriteStream(filename);
-                var request = https.get(img.url, function(response) {
-                    response.pipe(file);
-                    // Download complete
-                    file.on('finish', function() {
-                        // File write complete
-                        file.close(function (err) {
-                            if(err) throw err;
-                            console.log('Uploading image to initial message')
-                            const embedMsg = new Discord.MessageEmbed()
-                                .setTitle('Processing, please wait')
-                                .attachFiles([`./${filename}`])
-                                .setImage(`attachment://${filename}`);
-                            message.channel.send(embedMsg)
-                            .then( function (sent) {
-                                fs.unlink(filename);
-                                console.log(sent.id)
-                                var id64 = numtob64(sent.id);
-                                console.log(id64)
-                                console.log('Updating message with id and fields')
-                                const embedMsg = new Discord.MessageEmbed()
-                                    .setTitle(`Picture ${id64}`)
-                                    .addField('Posted By:',`<@${message.author.id}>`)
-                                    .setDescription(messageContent)
-                                    .addField('Image Description:', 'Description not yet set, use !setimgdesc to add description.')
-                                    .addField('Image Description Written By:', 'Nobody')
-                                    .setImage(`attachment://${filename}`);
-                                sent.edit(embedMsg)
-                                .then( function (doneMsg) {
-                                    console.log('Deleting user image');
-                                    message.delete()
+    if (message.attachments.size > 0) {
+        console.log(`Message has ${message.attachments.size} attachment(s)`);
+        if (message.attachments.every(attachmentIsImage))) {
+            console.log('All attachments are images');
+            var successCount = 0;
+            var attachmentCount = message.attachments.size;
+            message.attachments.forEach( function (img) {
+                console.log('Downloading image');
+                const filename = img.url.split('/').pop();
+                fsPromises.unlink(filename)
+                .catch( function (error) {})
+                .finally( function() {
+                    try{
+                        console.log(img.url);
+                        var file = fs.createWriteStream(filename);
+                        var request = https.get(img.url, function(response) {
+                            if (response.statusCode != 200){
+                                console.log(`Error: Got ${response.statusCode} while downloading image`);
+                                return null;
+                            }
+                            response.pipe(file);
+                            // Download complete
+                            file.on('finish', function() {
+                                // File write complete
+                                file.close(function (err) {
+                                    if(err) throw err;
+                                    console.log('Uploading image to initial message')
+                                    const embedMsg = new Discord.MessageEmbed()
+                                        .setTitle('Processing, please wait')
+                                        .attachFiles([`./${filename}`])
+                                        .setImage(`attachment://${filename}`);
+                                    message.channel.send(embedMsg)
+                                    .then( function (sent) {
+                                        fs.unlink(filename);
+                                        console.log(sent.id)
+                                        var id64 = numtob64(sent.id);
+                                        console.log(id64)
+                                        console.log('Updating message with id and fields')
+                                        const embedMsg = new Discord.MessageEmbed()
+                                            .setTitle(`Picture ${id64}`)
+                                            .addField('Posted By:',`<@${message.author.id}>`)
+                                            .setDescription(messageContent)
+                                            .addField('Image Description:', 'Description not yet set, use !setimgdesc to add description.')
+                                            .addField('Image Description Written By:', 'Nobody')
+                                            .setImage(`attachment://${filename}`);
+                                        sent.edit(embedMsg)
+                                        .then( function (doneMsg) {
+                                            successCount++;
+                                            if(successCount == attachmentCount){
+                                                console.log('Deleting user image');
+                                                message.delete();
+                                            }
+                                        });
+                                    });
                                 });
                             });
+                        // Download error
+                        }).on('error', function(err) {
+                            file.close();
+                            fs.unlink(dest); // Delete the file
+                            console.log(`Error while fetching image: ${err}`)
                         });
-                    });
-                // Download error
-                }).on('error', function(err) {
-                    file.close();
-                    fs.unlink(dest); // Delete the file
-                    console.log(`Error while fetching image: ${err}`)
+                    }
+                    catch (err) {
+                        console.log(`Error: Unknown processing error ${err}`);
+                    }
                 });
             });
         }
-    }
-    else if (message.attachments.size > 1) {
-        console.log('Multiple message attachments detected, not supported. Skipping.')
     }
     else {
         console.log('No attachment found')
