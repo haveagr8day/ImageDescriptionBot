@@ -121,7 +121,7 @@ bot.on('message', function (message) {
                                             .setImage(`attachment://${filename}`);
                                         sent.edit(embedMsg)
                                         .then( function (doneEmbed) {
-                                            doneEmbed.edit(`${id64}`);
+                                            doneEmbed.edit(`${id64}`)
                                             .then( function (doneMsg) {
                                                 successCount++;
                                                 if(successCount == attachmentCount){
