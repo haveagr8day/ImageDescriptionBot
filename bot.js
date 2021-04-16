@@ -259,7 +259,7 @@ function attachmentIsImage(msgAttach) {
             return true;
         }
     }
-    return false;bot
+    return false;
 }
 
 // Login to Discord and activate bot
