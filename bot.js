@@ -46,8 +46,15 @@ function numtob64(bn) {
 console.log('Starting bot')
 
 const Discord = require('discord.js');
+const https = require('https');
+const fs = require('fs');
+const fsPromises = fs.promises;
 
 const bot = new Discord.Client();
+
+function download(url, dest, cb) {
+
+};
 
 // Log when connection succeeeds
 bot.on('ready', function(evt) {
@@ -59,38 +66,76 @@ bot.on('ready', function(evt) {
 // Main bot code
 bot.on('message', function (message) {
     var messageContent = message.content;
-    console.log('Got message');
-    console.log(numtob64(message.id));
-    // Check for attachment
-    if (message.attachments.size > 0) {
-        console.log('Message has attachments');
-        if (message.attachments.every(attachmentIsImage)){
-            console.log('Image attachments found');
-            message.attachments.forEach( function (img) {
-                console.log('Posting image');
-                const embedMsg = new Discord.MessageEmbed()
-                    .setTitle('Processing, please wait');
-                message.channel.send(embedMsg)
-                .then( function (sent) {
-                    console.log(sent.id);
-                    var id64 = numtob64(sent.id);
-                    const embedMsg = new Discord.MessageEmbed()
-                        .setTitle(`Picture ${id64}`)
-                        .addField('Posted By:',`<@${message.author.id}>`)
-                        .setDescription(messageContent)
-                        .addField('Image Description:', 'Description not yet set, use !setimgdesc to add description.')
-                        .addField('Image Description Written By:', 'Nobody')
-                        .setImage(img.url);
-                    sent.edit(embedMsg)
-                    .then( function (doneMsg) {
-                        console.log(doneMsg.id)
-                        console.log(id64)
-                        message.delete()
+    
+    // Ignore bot messages
+    if(message.author.tag == bot.user.tag) {
+        return null;
+    }
+    
+    console.log(`Got message ${message.id}`);
+    // Check for single attachment
+    if (message.attachments.size == 1) {
+        console.log('Message has an attachment');
+        if (attachmentIsImage(message.attachments.first())) {
+            console.log('Attachment is an image');
+            img = message.attachments.first();
+            console.log('Downloading image');
+            const filename = img.url.split('/').pop();
+            fsPromises.unlink(filename)
+            .catch( function (error) {})
+            .finally( function() {
+                console.log(img.url);
+                var file = fs.createWriteStream(filename);
+                var request = https.get(img.url, function(response) {
+                    response.pipe(file);
+                    // Download complete
+                    file.on('finish', function() {
+                        // File write complete
+                        file.close(function (err) {
+                            if(err) throw err;
+                            console.log('Uploading image to initial message')
+                            const embedMsg = new Discord.MessageEmbed()
+                                .setTitle('Processing, please wait')
+                                .attachFiles([`./${filename}`])
+                                .setImage(`attachment://${filename}`);
+                            message.channel.send(embedMsg)
+                            .then( function (sent) {
+                                fs.unlink(filename);
+                                console.log(sent.id)
+                                var id64 = numtob64(sent.id);
+                                console.log(id64)
+                                console.log('Updating message with id and fields')
+                                const embedMsg = new Discord.MessageEmbed()
+                                    .setTitle(`Picture ${id64}`)
+                                    .addField('Posted By:',`<@${message.author.id}>`)
+                                    .setDescription(messageContent)
+                                    .addField('Image Description:', 'Description not yet set, use !setimgdesc to add description.')
+                                    .addField('Image Description Written By:', 'Nobody')
+                                    .setImage(`attachment://${filename}`);
+                                sent.edit(embedMsg)
+                                .then( function (doneMsg) {
+                                    console.log('Deleting user image');
+                                    message.delete()
+                                });
+                            });
+                        });
                     });
+                // Download error
+                }).on('error', function(err) {
+                    file.close();
+                    fs.unlink(dest); // Delete the file
+                    console.log(`Error while fetching image: ${err}`)
                 });
             });
         }
     }
+    else if (message.attachments.size > 1) {
+        console.log('Multiple message attachments detected, not supported. Skipping.')
+    }
+    else {
+        console.log('No attachment found')
+    }
+     
     
     // Check for command
     if (messageContent.substring(0,1) == '!') {
@@ -102,25 +147,89 @@ bot.on('message', function (message) {
         
         switch(cmd){
             case 'setimgdesc':
-                if(args.length >= 2){
+                const usageMsg = "To set an image description send:\n!setimgdesc <picture ID> <image description>\n\nExample:\n!setimgdesc C41LumcAAAA= A chipmunk eating from someone's hand."
+                console.log(`Got setimgdesc request for ${messageID}`)
+                // Argument count error
+                if(args.length < 2){
+                    console.log('Command Error: Not enough parameters')
+                    message.author.send('Error in setimgdesc command: not enough parameters. You sent:')
+                    .then( function() {
+                        message.author.send(messageContent)
+                        .then( function() {
+                            message.author.send(usageMsg)
+                            .then ( function() {
+                                message.delete();
+                            });
+                        });
+                    });
+                    return null;
+                }
+                
+                // Try decoding picture ID
+                try {
                     var messageID = b64tonum(args[0]).toString();
-                    var description = args.slice(1).join(' ');
-                    console.log(messageID)
-                    message.channel.messages.fetch(messageID)
-                        .then( function (toEdit) {
-                            var embedMsg = toEdit.embeds[0]
-                            embedMsg.fields[1].value = description
-                            embedMsg.fields[2].value = `<@${message.author.id}>`
-                            toEdit.edit(embedMsg)
-                                .then( function (doneMsg) {
+                }
+                catch(err){
+                    console.log('Command Error: Cannot decode picture ID')
+                    message.author.send('Error in setimgdesc command: invalid picture ID. You sent:')
+                    .then( function() {
+                        message.author.send(messageContent)
+                        .then( function() {
+                            message.author.send(usageMsg)
+                            .then ( function() {
+                                message.delete();
+                            });
+                        });
+                    });
+                    return null;
+                }
+                
+                var imageDescription = args.slice(1).join(' ');
+                
+                // Find message in channel
+                message.channel.messages.fetch(messageID)
+                .then( function (toEdit) {
+                    
+                    if (toEdit.author.tag != bot.user.tag){
+                        console.log('Command Error: Requested edit on non-bot message')
+                        message.author.send('Error in setimgdesc command: Message ID given is not owned by bot. You sent:')
+                        .then( function() {
+                            message.author.send(messageContent)
+                            .then( function() {
+                                message.author.send(usageMsg)
+                                .then ( function() {
                                     message.delete();
                                 });
+                            });
                         });
-                }
+                        return null; 
+                    }
+                    
+                    var embedMsg = toEdit.embeds[0]
+                    embedMsg.fields[1].value = imageDescription
+                    embedMsg.fields[2].value = `<@${message.author.id}>`
+                    toEdit.edit(embedMsg)
+                        .then( function (doneMsg) {
+                            message.delete();
+                        });
+                })
+                .catch( function (err) {
+                    console.log('Command Error: Cannot find picure with given ID')
+                    message.author.send('Error in setimgdesc command: Cannot find picture with given ID. You sent:')
+                    .then( function() {
+                        message.author.send(messageContent)
+                        .then( function() {
+                            message.author.send(usageMsg)
+                            .then ( function() {
+                                message.delete();
+                            });
+                        });
+                    });
+                    return null;
+                });
             break;
         }
-    }   
-
+    }
 });
 
 // Image extensions filter
@@ -140,8 +249,8 @@ function attachmentIsImage(msgAttach) {
 bot.login(process.env.DISCORD_BOT_TOKEN);
 
 process.on('SIGINT', function() {
-	console.log ('Shutting down')
+    console.log ('Shutting down')
 
-	bot.destroy()
-	process.exit()
+    bot.destroy()
+    process.exit()
 });
