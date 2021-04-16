@@ -120,12 +120,15 @@ bot.on('message', function (message) {
                                             .addField('Image Description Written By:', 'Nobody')
                                             .setImage(`attachment://${filename}`);
                                         sent.edit(embedMsg)
-                                        .then( function (doneMsg) {
-                                            successCount++;
-                                            if(successCount == attachmentCount){
-                                                console.log('Deleting user image');
-                                                message.delete();
-                                            }
+                                        .then( function (doneEmbed) {
+                                            doneEmbed.edit(`${id64}`);
+                                            .then( function (doneMsg) {
+                                                successCount++;
+                                                if(successCount == attachmentCount){
+                                                    console.log('Deleting user image post');
+                                                    message.delete();
+                                                }
+                                            });
                                         });
                                     });
                                 });
