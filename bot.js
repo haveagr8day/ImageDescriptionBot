@@ -76,7 +76,7 @@ bot.on('message', function (message) {
     // Check for single attachment
     if (message.attachments.size > 0) {
         console.log(`Message has ${message.attachments.size} attachment(s)`);
-        if (message.attachments.every(attachmentIsImage))) {
+        if (message.attachments.every(attachmentIsImage)) {
             console.log('All attachments are images');
             var successCount = 0;
             var attachmentCount = message.attachments.size;
