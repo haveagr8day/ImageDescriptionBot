@@ -163,7 +163,7 @@ bot.on('message', function (message) {
         switch(cmd){
             case 'setimgdesc':
                 const usageMsg = "To set an image description send:\n!setimgdesc <picture ID> <image description>\n\nExample:\n!setimgdesc C41LumcAAAA= A chipmunk eating from someone's hand."
-                console.log(`Got setimgdesc request for ${messageID}`)
+                console.log(`Got setimgdesc request`)
                 // Argument count error
                 if(args.length < 2){
                     console.log('Command Error: Not enough parameters')
@@ -183,6 +183,7 @@ bot.on('message', function (message) {
                 // Try decoding picture ID
                 try {
                     var messageID = b64tonum(args[0]).toString();
+                    console.log(`Message ID is ${messageID} (${args[0]})`)
                 }
                 catch(err){
                     console.log('Command Error: Cannot decode picture ID')
@@ -223,6 +224,7 @@ bot.on('message', function (message) {
                     var embedMsg = toEdit.embeds[0]
                     embedMsg.fields[1].value = imageDescription
                     embedMsg.fields[2].value = `<@${message.author.id}>`
+                    embedMsg.setImage(`attachment://${embedMsg.attachments.first().name}`);
                     toEdit.edit(embedMsg)
                         .then( function (doneMsg) {
                             message.delete();
@@ -257,7 +259,7 @@ function attachmentIsImage(msgAttach) {
             return true;
         }
     }
-    return false;
+    return false;bot
 }
 
 // Login to Discord and activate bot
