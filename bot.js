@@ -224,14 +224,15 @@ bot.on('message', function (message) {
                     var embedMsg = toEdit.embeds[0]
                     embedMsg.fields[1].value = imageDescription
                     embedMsg.fields[2].value = `<@${message.author.id}>`
-                    embedMsg.setImage(`attachment://${embedMsg.attachments.first().name}`);
+                    var attachmentName = embedMsg.image.url.split('/').pop();
+                    embedMsg.setImage(`attachment://${attachmentName}`);
                     toEdit.edit(embedMsg)
                         .then( function (doneMsg) {
                             message.delete();
                         });
                 })
                 .catch( function (err) {
-                    console.log('Command Error: Cannot find picure with given ID')
+                    console.log('Command Error: Cannot find picture with given ID')
                     message.author.send('Error in setimgdesc command: Cannot find picture with given ID. You sent:')
                     .then( function() {
                         message.author.send(messageContent)
