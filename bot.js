@@ -114,7 +114,7 @@ bot.on('message', function (message) {
                                         console.log('Updating message with id and fields');
                                         const embedMsg = new Discord.MessageEmbed()
                                         //    .setTitle(`Picture ${id64}`)
-                                            .addField('Posted By:',`<@${message.author.id}>`)
+                                            .addField('Posted By:',`<@!${message.author.id}>`)
                                             .setDescription(messageContent)
                                             .addField('Image Description:', 'Description not yet set, use !setimgdesc to add description.')
                                             .addField('Image Description Written By:', 'Nobody')
@@ -223,7 +223,7 @@ bot.on('message', function (message) {
                     
                     var embedMsg = toEdit.embeds[0]
                     embedMsg.fields[1].value = imageDescription
-                    embedMsg.fields[2].value = `<@${message.author.id}>`
+                    embedMsg.fields[2].value = `<@!${message.author.id}>`
                     var attachmentName = embedMsg.image.url.split('/').pop();
                     embedMsg.setImage(`attachment://${attachmentName}`);
                     toEdit.edit(embedMsg)
