@@ -113,7 +113,7 @@ bot.on('message', function (message) {
                                         console.log(id64);
                                         console.log('Updating message with id and fields');
                                         const embedMsg = new Discord.MessageEmbed()
-                                            .setTitle(`Picture ${id64}`)
+                                        //    .setTitle(`Picture ${id64}`)
                                             .addField('Posted By:',`<@${message.author.id}>`)
                                             .setDescription(messageContent)
                                             .addField('Image Description:', 'Description not yet set, use !setimgdesc to add description.')
