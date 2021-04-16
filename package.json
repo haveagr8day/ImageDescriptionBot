@@ -16,7 +16,7 @@
     "type": "git",
     "url": "git+https://github.com/haveagr8day/ImageDescriptionBot.git"
   },
-  "license": "ISC",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/haveagr8day/ImageDescriptionBot/issues"
   },
