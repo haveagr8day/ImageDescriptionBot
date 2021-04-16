@@ -107,26 +107,7 @@ bot.on('message', function (message) {
                                         .setImage(`attachment://${filename}`);
                                     message.channel.send(embedMsg)
                                     .then( function (sent) {
-                                        fs.unlink(filename);
-                                        console.log(sent.id)
-                                        var id64 = numtob64(sent.id);
-                                        console.log(id64)
-                                        console.log('Updating message with id and fields')
-                                        const embedMsg = new Discord.MessageEmbed()
-                                            .setTitle(`Picture ${id64}`)
-                                            .addField('Posted By:',`<@${message.author.id}>`)
-                                            .setDescription(messageContent)
-                                            .addField('Image Description:', 'Description not yet set, use !setimgdesc to add description.')
-                                            .addField('Image Description Written By:', 'Nobody')
-                                            .setImage(`attachment://${filename}`);
-                                        sent.edit(embedMsg)
-                                        .then( function (doneMsg) {
-                                            successCount++;
-                                            if(successCount == attachmentCount){
-                                                console.log('Deleting user image');
-                                                message.delete();
-                                            }
-                                        });
+                                        console.log('Initial message sent');
                                     });
                                 });
                             });
