@@ -1,6 +1,22 @@
 # ImageDescriptionBot
-## Summary
 An Image Description helper bot for Discord
+
+## Deployment
+[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/haveagr8day/ImageDescriptionBot/app.json)
+
+Create a Discord Bot application: https://discordpy.readthedocs.io/en/stable/discord.html
+
+Set bot token provided by Discord as $DISCORD_BOT_TOKEN environment variable wherever you are hosting/running the bot.
+
+Invite bot to desired discord server with the following permissions:
+
+Send Messages, Manage Messages, Embed Links, Attach Files, Read Message History
+
+Additionally, grant "View Channel" for any channels you want to bot to operate in.
+
+Inviting the bot can be done by using the following link with the Client ID provided on the OAuth2 page of your bot application: https://discord.com/api/oauth2/authorize?client_id=[REPLACE_WITH_CLIENT_ID]&permissions=124928&scope=bot
+
+## Usage
 
 ![Image posted by user with post text](https://i.imgur.com/WcxoEyK.png)
 
