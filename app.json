@@ -1,0 +1,16 @@
+{
+    "name": "Image Description Bot",
+    "description": "An image description helper bot for Discord",
+    "repository": "https://github.com/haveagr8day/ImageDescriptionBot",
+    "env": {
+        "DISCORD_BOT_TOKEN": {
+            "description": "Token for Discord Bot Authentication"
+        }
+    },
+    "formation": {
+        "worker": {
+            "quantity": 1,
+            "size": "free"
+        }
+    }
+}
