@@ -13,7 +13,8 @@
             "size": "free"
         },
         "web":{
-            "quantity": 0
+            "quantity": 0,
+            "size": "free"
         }
     }
 }
