@@ -272,3 +272,10 @@ process.on('SIGINT', function() {
     bot.destroy()
     process.exit()
 });
+
+process.on('SIGTERM', function() {
+    console.log ('Shutting down')
+
+    bot.destroy()
+    process.exit()
+});
