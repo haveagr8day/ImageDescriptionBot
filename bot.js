@@ -154,6 +154,7 @@ bot.on('message', function (message) {
     
     // Check for command
     if (messageContent.substring(0,1) == '!') {
+        console.log(`Got command message: ${messageContent} from ${message.author.tag}`)
         var args = messageContent.substring(1).split(' ');
         
         var cmd = args[0];
@@ -229,6 +230,7 @@ bot.on('message', function (message) {
                     embedMsg.setImage(`attachment://${attachmentName}`);
                     toEdit.edit(embedMsg)
                         .then( function (doneMsg) {
+                            console.log(`Image description updated for ${args[0]}`)
                             message.delete();
                         });
                 })
