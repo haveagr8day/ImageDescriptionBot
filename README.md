@@ -35,6 +35,8 @@ For example:
 
 !setimgdesc C45szN5GACA= Example image written on a grey background
 
+Alternatively, !setimagedesc can also be used in place of !setimgdesc
+
 ![Bot image post with updated image description](https://i.imgur.com/9EaCkaA.png)
 
 Errors when processing a !setimgdesc command (e.g. not enough parameters, invalid identifier, etc.) are sent to the user by DM.

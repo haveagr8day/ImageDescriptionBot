@@ -162,6 +162,7 @@ bot.on('message', function (message) {
         
         switch(cmd){
             case 'setimgdesc':
+            case 'setimagedesc':
                 const usageMsg = "To set an image description send:\n!setimgdesc <picture ID> <image description>\n\nExample:\n!setimgdesc C41LumcAAAA= A chipmunk eating from someone's hand."
                 console.log(`Got setimgdesc request`)
                 // Argument count error
