@@ -66,12 +66,12 @@ bot.on('ready', function(evt) {
 // Main bot code
 bot.on('message', function (message) {
     var messageContent = message.content;
-    
+
     // Ignore bot messages
     if(message.author.tag == bot.user.tag) {
         return null;
     }
-    
+
     console.log(`Got message ${message.id}`);
     // Check for single attachment
     if (message.attachments.size > 0) {
@@ -149,17 +149,17 @@ bot.on('message', function (message) {
     else {
         console.log('No attachment found')
     }
-     
-    
+
+
     // Check for command
     if (messageContent.substring(0,1) == '!') {
         console.log(`Got command message: ${messageContent} from ${message.author.tag}`)
         var args = messageContent.substring(1).split(' ');
-        
+
         var cmd = args[0].toLowerCase();
-        
+
         args = args.slice(1)
-        
+
         switch(cmd){
             case 'setimgdesc':
             case 'setimagedesc':
@@ -181,7 +181,16 @@ bot.on('message', function (message) {
                     });
                     return null;
                 }
-                
+
+                if(message.channel.name === 'idb-audit-logs') {
+                    console.log('Command Error: Requested edit in audit logs channel')
+                    message.author.send('Error in setimgdesc command: Cannot edit image descriptions in #idb-audit-logs')
+                    .then( function() {
+                        message.delete()
+                    });
+                    return null;
+                }
+
                 // Try decoding picture ID
                 try {
                     var messageID = b64tonum(args[0]).toString();
@@ -201,13 +210,13 @@ bot.on('message', function (message) {
                     });
                     return null;
                 }
-                
+
                 var imageDescription = args.slice(1).join(' ');
-                
+
                 // Find message in channel
                 message.channel.messages.fetch(messageID)
                 .then( function (toEdit) {
-                    
+
                     if (toEdit.author.tag != bot.user.tag){
                         console.log('Command Error: Requested edit on non-bot message')
                         message.author.send('Error in setimgdesc command: Message ID given is not owned by bot. You sent:')
@@ -220,17 +229,44 @@ bot.on('message', function (message) {
                                 });
                             });
                         });
-                        return null; 
+                        return null;
                     }
-                    
-                    var embedMsg = toEdit.embeds[0]
-                    embedMsg.fields[1].value = imageDescription
-                    embedMsg.fields[2].value = `<@!${message.author.id}>`
+
+                    var embedMsg = toEdit.embeds[0];
+                    var prevDescription = embedMsg.fields[1].value;
+                    var prevAuthor = embedMsg.fields[2].value;
+                    var newDescription = imageDescription;
+                    var newAuthor = `<@!${message.author.id}>`;
+                    embedMsg.fields[1].value = newDescription;
+                    embedMsg.fields[2].value = newAuthor;
                     var attachmentName = embedMsg.image.url.split('/').pop();
                     embedMsg.setImage(`attachment://${attachmentName}`);
                     toEdit.edit(embedMsg)
                         .then( function (doneMsg) {
-                            console.log(`Image description updated for ${args[0]}`)
+                            console.log(`Image description updated for ${args[0]}`);
+                            var auditLogChannel = message.guild.channels.cache.find(channel => channel.name === 'idb-audit-logs');
+                            var editedURL = doneMsg.url;
+                            if (auditLogChannel){
+                                console.log("Posting audit log entry")
+                                const embedMsg = new Discord.MessageEmbed()
+                                    .setTitle('Processing, please wait');
+                                auditLogChannel.send(embedMsg)
+                                .then( function (sent) {
+                                    console.log(sent.id);
+                                    var id64 = numtob64(sent.id);
+                                    console.log(id64);
+                                    console.log('Updating audit log with details');
+                                    const embedMsg = new Discord.MessageEmbed()
+                                        .addField('Log Type','Image Description Edited')
+                                        .addField('Image Post Link', editedURL)
+                                        .addField('Previous Description:', prevDescription)
+                                        .addField('Previous Author:', prevAuthor)
+                                        .addField('New Description:', newDescription)
+                                        .addField('New Author:', newAuthor)
+                                        .addField('Undo ID:', id64);
+                                    sent.edit(embedMsg);
+                                });
+                            }
                             message.delete();
                         });
                 })
@@ -248,6 +284,162 @@ bot.on('message', function (message) {
                     });
                     return null;
                 });
+                break;
+        case 'undo':
+        case 'undoedit':
+            if(message.channel.name === 'idb-audit-logs') {
+                const usageMsg = "To undo an edit:\n!undoedit <undo ID>\n\nExample:\n!undoedit C41LumcAAAA=";
+                console.log(`Got undoedit request`);
+                // Argument count error
+                if(args.length != 1){
+                    console.log('Command Error: Incorrect number of parameters')
+                    message.author.send('Error in undoedit command: incorrect number of parameters. You sent:')
+                    .then( function() {
+                        message.author.send(messageContent)
+                        .then( function() {
+                            message.author.send(usageMsg)
+                            .then ( function() {
+                                message.delete();
+                            });
+                        });
+                    });
+                    return null;
+                }
+
+                // Try decoding picture ID
+                try {
+                    var messageID = b64tonum(args[0]).toString();
+                    console.log(`Message ID is ${messageID} (${args[0]})`)
+                }
+                catch(err){
+                    console.log('Command Error: Cannot decode undo ID')
+                    message.author.send('Error in undoedit command: invalid undo ID. You sent:')
+                    .then( function() {
+                        message.author.send(messageContent)
+                        .then( function() {
+                            message.author.send(usageMsg)
+                            .then ( function() {
+                                message.delete();
+                            });
+                        });
+                    });
+                    return null;
+                }
+
+                // Find message in channel
+                message.channel.messages.fetch(messageID)
+                .then( function (undoLog) {
+                    if (undoLog.author.tag != bot.user.tag){
+                        console.log('Command Error: Requested undo with ID of non-bot message')
+                        message.author.send('Error in undoedit command: Undo ID given is not owned by bot. You sent:')
+                        .then( function() {
+                            message.author.send(messageContent)
+                            .then( function() {
+                                message.author.send(usageMsg)
+                                .then ( function() {
+                                    message.delete();
+                                });
+                            });
+                        });
+                        return null;
+                    }
+
+                    var undoEmbedMsg = undoLog.embeds[0];
+                    if (undoEmbedMsg.fields[0].value != 'Image Description Edited'){
+                        console.log('Command Error: Requested undo of non-edit log entry')
+                        message.author.send('Error in undoedit command: Requested undo of non-edit log entry. You sent:')
+                        .then( function() {
+                            message.author.send(messageContent)
+                            .then( function() {
+                                message.author.send(usageMsg)
+                                .then ( function() {
+                                    message.delete();
+                                });
+                            });
+                        });
+                        return null;
+                    }
+                    var revertURL = undoEmbedMsg.fields[1].value;
+                    var revertDescription = undoEmbedMsg.fields[2].value;
+                    var revertAuthor = undoEmbedMsg.fields[3].value;
+                    // Get message to revert edits on
+                    var revertURLSplit = revertURL.split('/')
+                    var revertChannelID = revertURLSplit[revertURLSplit.length - 2];
+                    var revertMessageID = revertURLSplit[revertURLSplit.length - 1];
+                    message.guild.channels.resolve(revertChannelID).messages.fetch(revertMessageID)
+                    .then(function (toEdit) {
+                        if (toEdit.author.tag != bot.user.tag){
+                            console.log('Command Error: Audit log links to message not owned by bot')
+                            message.author.send('Error in undoedit command: Audit log links to message not owned by bot. You sent:')
+                            .then( function() {
+                                message.author.send(messageContent)
+                                .then( function() {
+                                    message.delete();
+                                });
+                            });
+                            return null;
+                        }
+
+                        var embedMsg = toEdit.embeds[0];
+                        embedMsg.fields[1].value = revertDescription;
+                        embedMsg.fields[2].value = revertAuthor;
+                        var attachmentName = embedMsg.image.url.split('/').pop();
+                        embedMsg.setImage(`attachment://${attachmentName}`);
+                        toEdit.edit(embedMsg)
+                            .then( function (doneMsg) {
+                                console.log(`Image description updated for ${args[0]}`);
+                                var auditLogChannel = message.guild.channels.cache.find(channel => channel.name === 'idb-audit-logs');
+                                var editedURL = doneMsg.url;
+                                if (auditLogChannel){
+                                    console.log("Posting audit log entry")
+                                    const embedMsg = new Discord.MessageEmbed()
+                                        .setTitle('Processing, please wait');
+                                    auditLogChannel.send(embedMsg)
+                                    .then( function (sent) {
+                                        console.log(sent.id);
+                                        var id64 = numtob64(sent.id);
+                                        console.log(id64);
+                                        console.log('Updating audit log with details');
+                                        const embedMsg = new Discord.MessageEmbed()
+                                            .addField('Log Type','Reverted Image Description Edit')
+                                            .addField('Image Post Link', editedURL)
+                                            .addField('Reverted Description To:', revertDescription)
+                                            .addField('Reverted Author To:', revertAuthor)
+                                            .addField('Reverted By:', `<@!${message.author.id}>`);
+                                        sent.edit(embedMsg);
+                                    });
+                              }
+                                message.delete();
+                            });
+                    })
+                    .catch( function (err) {
+                        console.log('Command Error: Cannot find original message to undo edit')
+                        message.author.send('Error in undoedit command: Cannot find original message to undo edit (may have been deleted). You sent:')
+                        .then( function() {
+                            message.author.send(messageContent)
+                            .then( function() {
+                                message.delete();
+                            });
+                        });
+                        return null;
+                    });
+                })
+                .catch( function (err) {
+                    console.log(err);
+                    console.log('Command Error: Cannot find audit log with given ID')
+                    message.author.send('Error in undoedit command: Cannot find audit log with given ID. You sent:')
+                    .then( function() {
+                        message.author.send(messageContent)
+                        .then( function() {
+                            message.author.send(usageMsg)
+                            .then ( function() {
+                                message.delete();
+                            });
+                        });
+                    });
+                    return null;
+                });
+            }
             break;
         }
     }
