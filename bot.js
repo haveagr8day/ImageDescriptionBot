@@ -115,7 +115,7 @@ bot.on('message', function (message) {
                                         const embedMsg = new Discord.MessageEmbed()
                                             .addField('Posted By:',`<@!${message.author.id}>`)
                                             .setDescription(messageContent)
-                                            .addField('Image Description:', 'Description not yet set, use !setimgdesc to add description.')
+                                            .addField('Image Description:', 'Description not yet set.\n\nTo set an image description send:\n!setimgdesc <picture ID> <image description>\n\nExample:\n!setimgdesc C41LumcAAAA= A chipmunk eating from someone\'s hand.')
                                             .addField('Image Description Written By:', 'Nobody')
                                             .setImage(`attachment://${filename}`);
                                         sent.edit(embedMsg)
