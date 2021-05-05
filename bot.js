@@ -113,7 +113,6 @@ bot.on('message', function (message) {
                                         console.log(id64);
                                         console.log('Updating message with id and fields');
                                         const embedMsg = new Discord.MessageEmbed()
-                                        //    .setTitle(`Picture ${id64}`)
                                             .addField('Posted By:',`<@!${message.author.id}>`)
                                             .setDescription(messageContent)
                                             .addField('Image Description:', 'Description not yet set, use !setimgdesc to add description.')
@@ -157,13 +156,14 @@ bot.on('message', function (message) {
         console.log(`Got command message: ${messageContent} from ${message.author.tag}`)
         var args = messageContent.substring(1).split(' ');
         
-        var cmd = args[0];
+        var cmd = args[0].toLowerCase();
         
         args = args.slice(1)
         
         switch(cmd){
             case 'setimgdesc':
             case 'setimagedesc':
+            case 'setimagedescription':
                 const usageMsg = "To set an image description send:\n!setimgdesc <picture ID> <image description>\n\nExample:\n!setimgdesc C41LumcAAAA= A chipmunk eating from someone's hand."
                 console.log(`Got setimgdesc request`)
                 // Argument count error
