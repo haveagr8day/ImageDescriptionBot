@@ -52,9 +52,7 @@ const fsPromises = fs.promises;
 
 const bot = new Discord.Client();
 
-function download(url, dest, cb) {
-
-};
+var timerDict = {};
 
 // Log when connection succeeeds
 bot.on('ready', function(evt) {
@@ -123,6 +121,21 @@ bot.on('message', function (message) {
                                             doneEmbed.edit(`${id64}`)
                                             .then( function (doneMsg) {
                                                 successCount++;
+                                                var notifChannel = message.guild.channels.cache.find(channel => channel.name === 'id-needed');
+                                                if (notifChannel){
+                                                    console.log("Starting notification timer")
+                                                    var postURL = doneMsg.url;
+                                                    var postChannelName = message.channel.name;
+                                                    var postMessageID = id64;
+                                                    var imageURL = doneMsg.embeds[0].image.url;
+                                                    timerDict[id64] = setTimeout((postURL, postChannelName, notifChannel, imageURL) => {
+                                                        const embedMsg = new Discord.MessageEmbed()
+                                                            .setTitle(`Image Description needed in #${postChannelName}`)
+                                                            .addField('Image Post Link', postURL)
+                                                            .setImage(imageURL);
+                                                        notifChannel.send(embedMsg);
+                                                    }, 300000, postURL, postChannelName, notifChannel, imageURL);
+                                                }
                                                 if(successCount == attachmentCount){
                                                     console.log('Deleting user image post');
                                                     message.delete();
@@ -244,6 +257,10 @@ bot.on('message', function (message) {
                     toEdit.edit(embedMsg)
                         .then( function (doneMsg) {
                             console.log(`Image description updated for ${args[0]}`);
+                            if(args[0] in timerDict) {
+                                clearTimeout(timerDict[args[0]]);
+                                delete timerDict[args[0]];
+                            }
                             var auditLogChannel = message.guild.channels.cache.find(channel => channel.name === 'idb-audit-logs');
                             var editedURL = doneMsg.url;
                             if (auditLogChannel){
