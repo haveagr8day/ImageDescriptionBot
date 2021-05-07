@@ -129,11 +129,18 @@ bot.on('message', function (message) {
                                                     var postMessageID = id64;
                                                     var imageURL = doneMsg.embeds[0].image.url;
                                                     timerDict[id64] = setTimeout((postURL, postChannelName, notifChannel, imageURL) => {
+                                                        console.log("Sending ID needed message")
                                                         const embedMsg = new Discord.MessageEmbed()
                                                             .setTitle(`Image Description needed in #${postChannelName}`)
                                                             .addField('Image Post Link', postURL)
                                                             .setImage(imageURL);
-                                                        notifChannel.send(embedMsg);
+                                                        const role = notifChannel.guild.roles.cache.find(role => role.name === 'Image Description Volunteers');
+                                                        if (role){
+                                                            notifChannel.send(`<@&${role.id}>`, { "embed":embedMsg, "allowedMentions": { "roles":[role.id] } });
+                                                        }
+                                                        else{
+                                                            notifChannel.send(embedMsg);
+                                                        }
                                                     }, 300000, postURL, postChannelName, notifChannel, imageURL);
                                                 }
                                                 if(successCount == attachmentCount){
