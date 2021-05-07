@@ -259,7 +259,8 @@ bot.on('message', function (message) {
                     var newAuthor = `<@!${message.author.id}>`;
                     embedMsg.fields[1].value = newDescription;
                     embedMsg.fields[2].value = newAuthor;
-                    var attachmentName = embedMsg.image.url.split('/').pop();
+                    var imageURL = embedMsg.image.url;
+                    var attachmentName = imageURL.split('/').pop();
                     embedMsg.setImage(`attachment://${attachmentName}`);
                     toEdit.edit(embedMsg)
                         .then( function (doneMsg) {
@@ -287,7 +288,8 @@ bot.on('message', function (message) {
                                         .addField('Previous Author:', prevAuthor)
                                         .addField('New Description:', newDescription)
                                         .addField('New Author:', newAuthor)
-                                        .addField('Undo ID:', id64);
+                                        .addField('Undo ID:', id64)
+                                        .setThumbnail(imageURL);
                                     sent.edit(embedMsg);
                                 });
                             }
