@@ -14,7 +14,7 @@ Send Messages, Manage Messages, Embed Links, Attach Files, Read Message History
 
 Additionally, grant "View Channel" for any channels you want to bot to operate in.
 
-Inviting the bot can be done by using the following link with the Client ID provided on the OAuth2 page of your bot application: https://discord.com/api/oauth2/authorize?client_id=[REPLACE_WITH_CLIENT_ID]&permissions=256000&scope=bot
+Inviting the bot can be done by using the following link with the Client ID provided on the OAuth2 page of your bot application: https://discord.com/api/oauth2/authorize?client_id=[REPLACE_WITH_CLIENT_ID]&permissions=256064&scope=bot
 
 ## Usage
 
