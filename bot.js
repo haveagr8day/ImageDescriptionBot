@@ -331,7 +331,8 @@ function handleCommands(message) {
             // Try decoding picture ID
             try {
                 var messageID = b64tonum(args[0]).toString();
-                console.log(`Message ID is ${messageID} (${args[0]})`)
+                var b64ID = numtob64(messageID);
+                console.log(`Message ID is ${messageID} (${b64ID})`);
             }
             catch(err){
                 console.log('Command Error: Cannot decode picture ID')
@@ -381,10 +382,10 @@ function handleCommands(message) {
                 embedMsg.setImage(`attachment://${attachmentName}`);
                 toEdit.edit(embedMsg)
                     .then( function (doneMsg) {
-                        console.log(`Image description updated for ${args[0]}`);
-                        if(args[0] in timerDict) {
-                            clearTimeout(timerDict[args[0]]);
-                            delete timerDict[args[0]];
+                        console.log(`Image description updated for ${b64ID}`);
+                        if(b64ID in timerDict) {
+                            clearTimeout(timerDict[b64ID]);
+                            delete timerDict[b64ID];
                         }
                         var auditLogChannel = message.guild.channels.cache.find(channel => channel.name === 'idb-audit-logs');
                         var editedURL = doneMsg.url;
@@ -452,7 +453,8 @@ function handleCommands(message) {
             // Try decoding picture ID
             try {
                 var messageID = b64tonum(args[0]).toString();
-                console.log(`Message ID is ${messageID} (${args[0]})`)
+                var b64ID = numtob64(messageID);
+                console.log(`Message ID is ${messageID} (${b64ID})`);
             }
             catch(err){
                 console.log('Command Error: Cannot decode undo ID')
@@ -531,7 +533,7 @@ function handleCommands(message) {
                     embedMsg.setImage(`attachment://${attachmentName}`);
                     toEdit.edit(embedMsg)
                         .then( function (doneMsg) {
-                            console.log(`Image description updated for ${args[0]}`);
+                            console.log(`Image description updated for ${b64ID}`);
                             var auditLogChannel = message.guild.channels.cache.find(channel => channel.name === 'idb-audit-logs');
                             var editedURL = doneMsg.url;
                             if (auditLogChannel){
