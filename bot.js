@@ -181,6 +181,11 @@ function handleAttachments(message) {
         return;
     }
 
+    if(message.channel.name === 'id-needed') {
+        console.log('Ignoring attachment check for message in #id-needed')
+        return;
+    }
+
     if (message.attachments.size > 0) {
         console.log(`Message has ${message.attachments.size} attachment(s)`);
         if (message.attachments.every(attachmentIsImage)) {
