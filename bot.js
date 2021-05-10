@@ -99,77 +99,95 @@ bot.on('messageReactionAdd', async (reaction, user) => {
     }
 
     // Ignore reactions in channels with non-image bot posts
-    if(message.channel.name === 'idb-audit-logs' || message.channel.name === 'id-needed') {
+    if(message.channel.name === 'idb-audit-logs') {
         return;
     }
 
-    if(reaction.emoji.name == '🗑'){
-        if (message.embeds.length == 0){
-            return;
+    if (message.channel.name === 'id-needed') {
+        if(reaction.emoji.name == '✅'){
+            const role = message.guild.roles.cache.find(role => role.name === 'Image Description Volunteers');
+            if(role){
+                if(message.guild.members.resolve(user.id).roles.cache.has(role.id)){
+                    message.delete();
+                }
+                else{
+                    reaction.users.remove(user);
+                }
+            }
+            else{
+                message.delete();
+            }
         }
-        var embedMsg = message.embeds[0];
+    }
+    else{
+        if(reaction.emoji.name == '🗑'){
+            if (message.embeds.length == 0){
+                return;
+            }
+            var embedMsg = message.embeds[0];
 
-        // Delete wastebin react if from non-owner and ignore
-        if (embedMsg.fields[0].value != `<@!${user.id}>`){
-            reaction.users.remove(user);
-            return;
-        }
+            // Delete wastebin react if from non-owner and ignore
+            if (embedMsg.fields[0].value != `<@!${user.id}>`){
+                reaction.users.remove(user);
+                return;
+            }
 
-        console.log('Sending delete confirmation message')
-        message.channel.send(`<@!${user.id}> click ✅ to confirm deleting your post, or ❌ to cancel. Deletion will automatically cancel after 60 seconds if no response is received.`)
-        .then( async(confirmMsg) => {
-            const filter = (reaction, confirmUser) => (reaction.emoji.name === '❌' || reaction.emoji.name ==='✅') && user.id === confirmUser.id
-            confirmMsg.awaitReactions(filter, {max:1, time:60000, errors: ['time']})
-            .then(collected => {
-                const confirmReaction = collected.first();
+            console.log('Sending delete confirmation message')
+            message.channel.send(`<@!${user.id}> click ✅ to confirm deleting your post, or ❌ to cancel. Deletion will automatically cancel after 60 seconds if no response is received.`)
+            .then( async(confirmMsg) => {
+                const filter = (reaction, confirmUser) => (reaction.emoji.name === '❌' || reaction.emoji.name ==='✅') && user.id === confirmUser.id
+                confirmMsg.awaitReactions(filter, {max:1, time:60000, errors: ['time']})
+                .then(collected => {
+                    const confirmReaction = collected.first();
 
-                if (confirmReaction.emoji.name === '❌') {
-                    console.log('Cancelled deletion')
+                    if (confirmReaction.emoji.name === '❌') {
+                        console.log('Cancelled deletion')
+                        confirmMsg.delete();
+                        reaction.users.remove(user);
+                        return;
+                    }
+
+                    if (confirmReaction.emoji.name === '✅') {
+                        console.log('Deleting post by request of owner')
+                        confirmMsg.delete()
+
+                        // Cancel ID request timer
+                        var b64id = numtob64(message.id);
+                        if(b64id in timerDict) {
+                            clearTimeout(timerDict[b64id]);
+                            delete timerDict[b64id];
+                        }
+
+                        var auditLogChannel = message.guild.channels.cache.find(channel => channel.name === 'idb-audit-logs');
+                        if (auditLogChannel){
+                            console.log("Posting audit log entry")
+                            const auditEmbedMsg = new Discord.MessageEmbed()
+                                .addField('Log Type','Post deleted by owner')
+                                .addField('Post Owner:',`<@!${user.id}>`)
+                                .addField('Channel:',`<#${message.channel.id}>`)
+                                .addField('Post Text:',`${embedMsg.description}`)
+                                .addField('Image Description:',`${embedMsg.fields[1].value}`)
+                                .addField('Image Description Author:',`${embedMsg.fields[2].value}`)
+                            auditLogChannel.send(auditEmbedMsg)
+                        }
+
+                        message.delete();
+                        return;
+                    }
+                })
+                .catch(collected => {
+                    console.log('Auto-cancelled deletion (timed out)')
                     confirmMsg.delete();
                     reaction.users.remove(user);
                     return;
+                });
+                try{
+                    await confirmMsg.react('✅');
+                    await confirmMsg.react('❌');
                 }
-
-                if (confirmReaction.emoji.name === '✅') {
-                    console.log('Deleting post by request of owner')
-                    confirmMsg.delete()
-
-                    // Cancel ID request timer
-                    var b64id = numtob64(message.id);
-                    if(b64id in timerDict) {
-                        clearTimeout(timerDict[b64id]);
-                        delete timerDict[b64id];
-                    }
-
-                    var auditLogChannel = message.guild.channels.cache.find(channel => channel.name === 'idb-audit-logs');
-                    if (auditLogChannel){
-                        console.log("Posting audit log entry")
-                        const auditEmbedMsg = new Discord.MessageEmbed()
-                            .addField('Log Type','Post deleted by owner')
-                            .addField('Post Owner:',`<@!${user.id}>`)
-                            .addField('Channel:',`<#${message.channel.id}>`)
-                            .addField('Post Text:',`${embedMsg.description}`)
-                            .addField('Image Description:',`${embedMsg.fields[1].value}`)
-                            .addField('Image Description Author:',`${embedMsg.fields[2].value}`)
-                        auditLogChannel.send(auditEmbedMsg)
-                    }
-
-                    message.delete();
-                    return;
-                }
-            })
-            .catch(collected => {
-                console.log('Auto-cancelled deletion (timed out)')
-                confirmMsg.delete();
-                reaction.users.remove(user);
-                return;
+                catch(err) {}
             });
-            try{
-                await confirmMsg.react('✅');
-                await confirmMsg.react('❌');
-            }
-            catch(err) {}
-        });
+        }
     }
 });
 
@@ -252,10 +270,16 @@ function handleAttachments(message) {
                                                             .setImage(imageURL);
                                                         const role = notifChannel.guild.roles.cache.find(role => role.name === 'Image Description Volunteers');
                                                         if (role){
-                                                            notifChannel.send(`<@&${role.id}>`, { "embed":embedMsg, "allowedMentions": { "roles":[role.id] } });
+                                                            notifChannel.send(`<@&${role.id}>`, { "embed":embedMsg, "allowedMentions": { "roles":[role.id] } })
+                                                            .then (notifMsg => {
+                                                                notifMsg.react('✅')
+                                                            });
                                                         }
                                                         else{
-                                                            notifChannel.send(embedMsg);
+                                                            notifChannel.send(embedMsg)
+                                                            .then (notifMsg => {
+                                                                notifMsg.react('✅')
+                                                            });
                                                         }
                                                     }, 300000, postURL, postChannelName, notifChannel, imageURL);
                                                 }
