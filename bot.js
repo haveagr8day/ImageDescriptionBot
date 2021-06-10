@@ -266,7 +266,7 @@ function handleAttachments(message) {
                                             .setImage(`attachment://${filename}`);
                                         sent.edit(embedMsg)
                                         .then( function (doneEmbed) {
-                                            doneEmbed.edit(`${id64}`)
+                                            doneEmbed.edit({ content: `${id64}`, embed: embedMsg })
                                             .then( function (doneMsg) {
                                                 successCount++;
                                                 doneMsg.react("🗑")
@@ -373,7 +373,7 @@ function handleEmbeds(message) {
                         .setFooter(imgSent.id);
                         sent.edit(embedMsg)
                         .then( function (doneEmbed) {
-                            doneEmbed.edit(`${id64}`)
+                            doneEmbed.edit({ content: `${id64}`, embed: embedMsg })
                             .then( function (doneMsg) {
                                 successCount++;
                                 doneMsg.react("🗑")
@@ -526,7 +526,7 @@ function handleCommands(message) {
                 else {
                     var imageURL = null;
                 }
-                toEdit.edit(embedMsg)
+                toEdit.edit({ content: toEdit.content, embed: embedMsg })
                     .then( function (doneMsg) {
                         console.log(`Image description updated for ${b64ID}`);
                         if(b64ID in timerDict) {
@@ -683,7 +683,7 @@ function handleCommands(message) {
                     else {
                         var imageURL = null;
                     }
-                    toEdit.edit(embedMsg)
+                    toEdit.edit({ content: toEdit.content, embed: embedMsg })
                         .then( function (doneMsg) {
                             console.log(`Image description updated for ${b64ID}`);
                             var auditLogChannel = message.guild.channels.cache.find(channel => channel.name === 'idb-audit-logs');
