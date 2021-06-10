@@ -89,7 +89,7 @@ bot.on('messageUpdate', (oldMessage, newMessage) => {
     if(newMessage.author.tag == bot.user.tag) {
         return;
     }
-    console.log(`Got update for message ${message.id}`);
+    console.log(`Got update for message ${newMessage.id}`);
     handleEmbeds(newMessage);
 });
 
