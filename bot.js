@@ -70,16 +70,27 @@ bot.on('message', async function (message) {
             return;
         }
     }
+    //console.log(JSON.stringify(message,null,4))
 
     // Ignore bot messages
     if(message.author.tag == bot.user.tag) {
         return;
     }
-
     console.log(`Got message ${message.id}`);
 
     handleAttachments(message);
+    handleEmbeds(message);
     handleCommands(message);
+});
+
+bot.on('messageUpdate', (oldMessage, newMessage) => {
+    //console.log(JSON.stringify(newMessage,null,4))
+    // Ignore bot messages
+    if(newMessage.author.tag == bot.user.tag) {
+        return;
+    }
+    console.log(`Got update for message ${message.id}`);
+    handleEmbeds(newMessage);
 });
 
 bot.on('messageReactionAdd', async (reaction, user) => {
@@ -172,10 +183,15 @@ bot.on('messageReactionAdd', async (reaction, user) => {
                         }
 
                         message.delete();
+                        
+                        if(embedMsg.footer){
+                            message.channel.messages.cache.get(embedMsg.footer.text).delete();
+                        }
                         return;
                     }
                 })
                 .catch(collected => {
+                    console.log(collected);
                     console.log('Auto-cancelled deletion (timed out)')
                     confirmMsg.delete();
                     reaction.users.remove(user);
@@ -311,6 +327,102 @@ function handleAttachments(message) {
     }
 }
 
+function handleEmbeds(message) {
+    var messageContent = message.content;
+
+    if(message.channel.name === 'idb-audit-logs') {
+        console.log('Ignoring embed checks for message in #idb-audit-logs')
+        return;
+    }
+
+    if(message.channel.name === 'id-needed') {
+        console.log('Ignoring embed checks for message in #id-needed')
+        return;
+    }
+
+    if (message.embeds.length > 0) {
+        console.log(`Message has ${message.embeds.length} embed(s)`);
+        if (message.embeds.every( embed => { return embed.type == 'image' || embed.type == 'gifv' })) {
+            console.log('All embeds are images');
+            var successCount = 0;
+            var embedCount = message.embeds.length;
+            message.embeds.forEach( function (embed) {               
+                console.log('Uploading image to initial message')
+                const embedMsg = new Discord.MessageEmbed()
+                    .setTitle('Processing, please wait');  
+                message.channel.send(embedMsg)
+                .then( function (sent) {
+                    console.log(sent.id);
+                    var id64 = numtob64(sent.id);
+                    console.log(id64);
+                    message.channel.send({
+                        "content": embed.url,
+                        "embeds":
+                        [{
+                            "type": embed.type,
+                            "url": embed.url
+                        }]
+                    })
+                    .then( (imgSent) => {
+                        console.log('Updating message with id and fields');
+                        const embedMsg = new Discord.MessageEmbed()
+                        .addField('Posted By:',`<@!${message.author.id}>`)
+                        .setDescription(messageContent.replace(embed.url,''))
+                        .addField('Image Description:', 'Description not yet set.\n\nTo set an image description send:\n!setimgdesc <picture ID> <image description>\n\nExample:\n!setimgdesc C41LumcAAAA= A chipmunk eating from someone\'s hand.')
+                        .addField('Image Description Written By:', 'Nobody')
+                        .setFooter(imgSent.id);
+                        sent.edit(embedMsg)
+                        .then( function (doneEmbed) {
+                            doneEmbed.edit(`${id64}`)
+                            .then( function (doneMsg) {
+                                successCount++;
+                                doneMsg.react("🗑")
+                                    .catch(error => console.log(error));
+                                var notifChannel = message.guild.channels.cache.find(channel => channel.name === 'id-needed');
+                                if (notifChannel){
+                                    console.log("Starting notification timer")
+                                    var postURL = doneMsg.url;
+                                    var postChannelName = message.channel.name;
+                                    var postMessageID = id64;
+                                    timerDict[id64] = setTimeout((postURL, postChannelName, notifChannel) => {
+                                        console.log("Sending ID needed message")
+                                        const embedMsg = new Discord.MessageEmbed()
+                                            .setTitle(`Image Description needed in #${postChannelName}`)
+                                            .addField('Image Post Link', postURL);
+                                        const role = notifChannel.guild.roles.cache.find(role => role.name === 'Image Description Volunteers');
+                                        if (role){
+                                            notifChannel.send(`<@&${role.id}>`, { "embed":embedMsg, "allowedMentions": { "roles":[role.id] } })
+                                            .then (notifMsg => {
+                                                notifMsg.react('✅')
+                                            });
+                                        }
+                                        else{
+                                            notifChannel.send(embedMsg)
+                                            .then (notifMsg => {
+                                                notifMsg.react('✅')
+                                            });
+                                        }
+                                    }, 300000, postURL, postChannelName, notifChannel);
+                                }
+                                if(successCount == embedCount){
+                                    console.log('Deleting user image post');
+                                    message.delete();
+                                }
+                            });
+                        });
+                    });  
+                })
+                .catch (err => {
+                    console.log(`Error: Unknown processing error ${err}`);
+                });
+            });
+        }
+    }
+    else {
+        console.log('No embeds found')
+    }
+}
+
 function handleCommands(message) {
     var messageContent = message.content;
 
@@ -406,9 +518,14 @@ function handleCommands(message) {
                 var newAuthor = `<@!${message.author.id}>`;
                 embedMsg.fields[1].value = newDescription;
                 embedMsg.fields[2].value = newAuthor;
-                var imageURL = embedMsg.image.url;
-                var attachmentName = imageURL.split('/').pop();
-                embedMsg.setImage(`attachment://${attachmentName}`);
+                if (embedMsg.image){
+                    var imageURL = embedMsg.image.url;
+                    var attachmentName = imageURL.split('/').pop();
+                    embedMsg.setImage(`attachment://${attachmentName}`);
+                }
+                else {
+                    var imageURL = null;
+                }
                 toEdit.edit(embedMsg)
                     .then( function (doneMsg) {
                         console.log(`Image description updated for ${b64ID}`);
@@ -444,6 +561,7 @@ function handleCommands(message) {
                     });
             })
             .catch( function (err) {
+                console.log(err)
                 console.log('Command Error: Cannot find picture with given ID')
                 message.author.send('Error in setimgdesc command: Cannot find picture with given ID. You sent:')
                 .then( function() {
@@ -557,9 +675,14 @@ function handleCommands(message) {
                     var embedMsg = toEdit.embeds[0];
                     embedMsg.fields[1].value = revertDescription;
                     embedMsg.fields[2].value = revertAuthor;
-                    var imageURL = embedMsg.image.url;
-                    var attachmentName = imageURL.split('/').pop();
-                    embedMsg.setImage(`attachment://${attachmentName}`);
+                    if (embedMsg.image){
+                        var imageURL = embedMsg.image.url;
+                        var attachmentName = imageURL.split('/').pop();
+                        embedMsg.setImage(`attachment://${attachmentName}`);
+                    }
+                    else {
+                        var imageURL = null;
+                    }
                     toEdit.edit(embedMsg)
                         .then( function (doneMsg) {
                             console.log(`Image description updated for ${b64ID}`);
