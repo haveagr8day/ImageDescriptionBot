@@ -63,6 +63,7 @@ bot.on('ready', function(evt) {
 
 // Main bot code
 bot.on('message', async function (message) {
+    console.log(`on message: ${message.id}`)
     if (message.partial){
         try{
             await message.fetch();
@@ -70,26 +71,42 @@ bot.on('message', async function (message) {
             return;
         }
     }
+    if (!message.author){
+        console.log("Ignoring message with no author")
+        return;
+    }
     //console.log(JSON.stringify(message,null,4))
 
     // Ignore bot messages
     if(message.author.tag == bot.user.tag) {
         return;
     }
-    console.log(`Got message ${message.id}`);
+    console.log(`Processing message ${message.id}`);
 
     handleAttachments(message);
     handleEmbeds(message);
     handleCommands(message);
 });
 
-bot.on('messageUpdate', (oldMessage, newMessage) => {
+bot.on('messageUpdate', async (oldMessage, newMessage) => {
+    console.log(`on messageUpdate: ${newMessage.id}`)
+    if (newMessage.partial){
+        try{
+            await newMessage.fetch();
+        } catch(err){
+            return;
+        }
+    }
+    if (!newMessage.author){
+        console.log("Ignoring message with no author")
+        return;
+    }
     //console.log(JSON.stringify(newMessage,null,4))
     // Ignore bot messages
     if(newMessage.author.tag == bot.user.tag) {
         return;
     }
-    console.log(`Got update for message ${newMessage.id}`);
+    console.log(`Processing update for message ${newMessage.id}`);
     handleEmbeds(newMessage);
 });
 
