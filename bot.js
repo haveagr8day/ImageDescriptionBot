@@ -787,7 +787,6 @@ setTimeout(function() {
     bot.destroy()
     process.exit()
 }, millisTill4);
-console.log(millisTill4)
 
 process.on('SIGINT', function() {
     console.log ('Shutting down')
